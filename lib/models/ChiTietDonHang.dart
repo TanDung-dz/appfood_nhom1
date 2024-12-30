@@ -15,7 +15,7 @@ class ChiTietDonHang {
     this.tenSanPham,
   });
 
-  // Chuyển đổi từ JSON sang đối tượng Dart
+  // Chuyển đổi từ JSON sang đối tượng Dartt
   factory ChiTietDonHang.fromJson(Map<String, dynamic> json) {
     return ChiTietDonHang(
       maSanPham: json['maSanPham'],
