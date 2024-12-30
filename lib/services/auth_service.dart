@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/NguoiDung.dart';
@@ -10,8 +11,40 @@ import 'dart:io';
 
 class ApiService {
   final String baseUrl = ApiConfig.baseUrl;
+  Future<Map<String, dynamic>?> autoLogin() async {
+    try {
+      // Lấy token từ SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
 
-  Future<NguoiDung> login(String username, String password) async {
+      if (token == null) {
+        print("Không tìm thấy token.");
+        return null; // Không có token
+      }
+
+      if (JwtDecoder.isExpired(token)) {
+        print("Token đã hết hạn.");
+        return null; // Token đã hết hạn
+      }
+
+      // Giải mã token để lấy thông tin người dùng
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+
+      print("Token hợp lệ. Thông tin giải mã: $decodedToken");
+      // Trả về thông tin
+      return {
+        "success": true,
+        "token": token,
+        "decodedToken": decodedToken,
+      };
+    } catch (e) {
+      print("Lỗi khi tự động đăng nhập: $e");
+      return null; // Xử lý lỗi chung, trả về null
+    }
+  }
+
+
+  Future<Map<String, dynamic>> login(String username, String password) async {
     try {
       print('Calling login API with username: $username'); // Debug log
 
@@ -35,19 +68,20 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+        //lấy token trả về
+        String token = responseData['token'];
+        // Decode token để lấy các thông tin đăng nhập: tên đăng nhập, role...
+        Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+        // Lưu token vào SharedPreferences
+        SharedPreferences prefs = await
+        SharedPreferences.getInstance();
+        prefs.setString('jwt_token', token); // Lưu token
+        return {
+          "success": true,
+          "token": token,
+          "decodedToken": decodedToken,
+        };
 
-        // Kiểm tra xem responseData có phải là Map không
-        if (responseData is! Map<String, dynamic>) {
-          throw Exception('Invalid response format');
-        }
-
-        final nguoiDung = NguoiDung.fromJson(responseData);
-
-        // Lưu thông tin người dùng
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('userData', json.encode(responseData));
-
-        return nguoiDung;
       } else {
         // Xử lý các status code khác
         switch (response.statusCode) {

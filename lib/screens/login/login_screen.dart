@@ -9,7 +9,6 @@ class LoginScreen extends StatefulWidget {
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
-
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
@@ -17,6 +16,36 @@ class _LoginScreenState extends State<LoginScreen> {
   final _apiService = ApiService();
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAutoLogin(); // Kiểm tra token khi khởi động màn hình
+  }
+
+  Future<void> _checkAutoLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = await _apiService.autoLogin(); // Gọi phương thức autoLogin
+      if (user != null) {
+        // Nếu token hợp lệ và có thông tin người dùng, chuyển sang màn hình Home
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home', arguments: user);
+        }
+      }
+    } catch (e) {
+      print("Auto-login failed: $e"); // Debug lỗi nếu cần
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -58,7 +87,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _isLoading
+            ? const Center(
+          child: CircularProgressIndicator(),
+        )
+            : SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -66,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
-
                 // Logo and App Name
                 Center(
                   child: Column(
@@ -75,7 +107,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         height: 100,
                         width: 100,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          color: Theme.of(context)
+                              .primaryColor
+                              .withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -87,7 +121,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
                       Text(
                         'Food App',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).primaryColor,
                         ),
@@ -95,9 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 40),
-
                 // Error Message
                 if (_errorMessage != null)
                   Container(
@@ -112,7 +147,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(color: Colors.red.shade700),
                     ),
                   ),
-
                 // Username Field
                 Container(
                   decoration: BoxDecoration(
@@ -147,9 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 // Password Field
                 Container(
                   decoration: BoxDecoration(
@@ -185,9 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 30),
-
                 // Login Button
                 SizedBox(
                   width: double.infinity,
@@ -205,7 +235,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white),
                       ),
                     )
                         : const Text(
@@ -214,22 +245,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 // Register Link
                 Center(
                   child: TextButton(
                     onPressed: () {
                       Navigator.pushNamed(context, '/register');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                      );
                     },
                     child: Text(
                       'Chưa có tài khoản? Đăng ký ngay',
-                      style: TextStyle(color: Theme.of(context).primaryColor),
+                      style: TextStyle(
+                          color: Theme.of(context).primaryColor),
                     ),
                   ),
                 ),
