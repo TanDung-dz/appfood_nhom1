@@ -70,12 +70,16 @@ class ApiService {
         final responseData = json.decode(response.body);
         //lấy token trả về
         String token = responseData['token'];
+        String username = responseData['name'];
+        String role = responseData['role'];
         // Decode token để lấy các thông tin đăng nhập: tên đăng nhập, role...
         Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
         // Lưu token vào SharedPreferences
         SharedPreferences prefs = await
         SharedPreferences.getInstance();
         prefs.setString('jwt_token', token); // Lưu token
+        prefs.setString('username', username);//Lưu ten đăng nhập
+        prefs.setString('role', role);// lưu Quyền
         return {
           "success": true,
           "token": token,
