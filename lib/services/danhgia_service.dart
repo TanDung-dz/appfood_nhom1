@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/DanhGia.dart';
@@ -64,7 +65,6 @@ class DanhGiaService {
     final response = await http.delete(
       Uri.parse('$baseUrl/api/DanhGia/DeleteDanhGia/$id'),
     );
-
     if (response.statusCode != 204) {
       throw Exception('Failed to delete DanhGia with ID $id');
     }
@@ -79,6 +79,37 @@ class DanhGiaService {
       return data.map((json) => DanhGia.fromJson(json)).toList();
     } else {
       throw Exception('Failed to search DanhGias with keyword: $keyword');
+    }
+  }
+
+  Future<DanhGia> createDanhGiaWithImage(DanhGia newDanhGia, File? imageFile) async {
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/api/DanhGia/CreateDanhGia'),
+    );
+
+    // Add review data fields
+    request.fields.addAll({
+      'MaNguoiDung': newDanhGia.maNguoiDung.toString(),
+      'MaSanPham': newDanhGia.maSanPham.toString(),
+      'SoSao': newDanhGia.soSao.toString(),
+      'NoiDung': newDanhGia.noiDung ?? '', // Handle nullable string
+    });
+
+    // Add image if provided
+    if (imageFile != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('Img', imageFile.path),
+      );
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 201) {
+      return DanhGia.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to create review: ${response.body}');
     }
   }
 }
