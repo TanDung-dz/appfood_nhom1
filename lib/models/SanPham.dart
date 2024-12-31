@@ -75,7 +75,7 @@ class SanPham {
       'tenSanPham': tenSanPham,
       'moTa': moTa,
       'gia': gia,
-      'soluong': soLuong,
+      'soLuong': soLuong,
       'trangThai': trangThai,
       'anh1': anh1,
       'anh2': anh2,

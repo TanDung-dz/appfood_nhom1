@@ -10,6 +10,7 @@ class DanhGia {
   final DateTime? thoiGianCapNhat;
   final String? tenNguoiDung;
   final String? tenSanPham;
+  final dynamic img; // Thêm trường img để xử lý file ảnh
 
   DanhGia({
     required this.maDanhGia,
@@ -23,6 +24,7 @@ class DanhGia {
     this.thoiGianCapNhat,
     this.tenNguoiDung,
     this.tenSanPham,
+    this.img, // Khởi tạo trường img
   });
 
   // Chuyển đổi từ JSON sang đối tượng Dart
@@ -43,6 +45,7 @@ class DanhGia {
           : null,
       tenNguoiDung: json['tenNguoiDung'],
       tenSanPham: json['tenSanPham'],
+      img: json['img'], // Thêm chuyển đổi cho img
     );
   }
 
@@ -60,6 +63,7 @@ class DanhGia {
       'thoiGianCapNhat': thoiGianCapNhat?.toIso8601String(),
       'tenNguoiDung': tenNguoiDung,
       'tenSanPham': tenSanPham,
+      'img': img, // Thêm img vào JSON
     };
   }
 }

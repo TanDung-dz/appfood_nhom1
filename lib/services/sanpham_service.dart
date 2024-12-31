@@ -110,9 +110,11 @@ class SanPhamService {
 
   // Helper method để thêm các trường thông tin sản phẩm
   void _addProductFields(http.MultipartRequest request, SanPham sanPham) {
+    print('Request fields: ${request.fields}'); // Dòng mới thêm để debug
     request.fields['tenSanPham'] = sanPham.tenSanPham ?? '';
     request.fields['moTa'] = sanPham.moTa ?? '';
     request.fields['gia'] = sanPham.gia?.toString() ?? '0';
+    request.fields['soLuong'] = sanPham.soLuong?.toString() ?? '0';
     request.fields['trangThai'] = sanPham.trangThai?.toString() ?? '0';
     request.fields['maLoai'] = sanPham.maLoai.toString();
     request.fields['maNhaCungCap'] = sanPham.maNhaCungCap.toString();
@@ -164,6 +166,4 @@ class SanPhamService {
       throw Exception('Error uploading images: $e');
     }
   }
-
-
 }

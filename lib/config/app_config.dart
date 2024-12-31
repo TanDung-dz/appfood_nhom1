@@ -6,7 +6,8 @@ class ApiConfig {
     if (kIsWeb) {
       return 'http://localhost:5240';  // URL cho web
     } else {
-      return 'https://nextredleaf55.conveyor.cloud';   // URL cho Android emulator
+
+      return 'http://10.0.2.2:5240';   // URL cho Android emulator
     }
   }
 }

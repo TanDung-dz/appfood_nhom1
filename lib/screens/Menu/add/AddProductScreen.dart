@@ -95,11 +95,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Parse số lượng và giá an toàn với tryParse
+      final soLuong = int.tryParse(_soLuongController.text);
+      final gia = double.tryParse(_giaController.text);
+
+      if (soLuong == null || gia == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Số lượng hoặc giá không hợp lệ')),
+        );
+        return;
+      }
+
       final sanPham = SanPham(
         maSanPham: 0,
         tenSanPham: _tenSanPhamController.text,
         moTa: _moTaController.text,
-        gia: double.parse(_giaController.text),
+        gia: gia,  // Sử dụng giá trị đã tryParse
+        soLuong: soLuong,  // Sử dụng giá trị đã tryParse
         trangThai: _trangThai,
         maLoai: _maLoai!,
         maNhaCungCap: _maNhaCungCap!,
@@ -122,6 +134,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       setState(() => _isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -186,10 +199,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
               TextFormField(
                 controller: _soLuongController,
                 decoration: const InputDecoration(
-                  labelText: 'SoLuong',
+                  labelText: 'Số lượng *',
                   border: OutlineInputBorder(),
                 ),
-                maxLines: 1,
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value?.isEmpty ?? true) {
+                    return 'Vui lòng nhập số lượng';
+                  }
+                  final soLuong = int.tryParse(value!);
+                  if (soLuong == null) {
+                    return 'Số lượng phải là số nguyên';
+                  }
+                  if (soLuong < 0) {
+                    return 'Số lượng không thể âm';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -344,6 +370,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _tenSanPhamController.dispose();
     _moTaController.dispose();
     _giaController.dispose();
+    _soLuongController.dispose();
     super.dispose();
   }
 }

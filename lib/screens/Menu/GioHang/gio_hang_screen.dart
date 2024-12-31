@@ -54,26 +54,26 @@ class _GioHangScreenState extends State<GioHangScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: _loadCartItems,
-            child: ListView.builder(
-              itemCount: cartProvider.cartItems.length,
-              itemBuilder: (context, index) {
-                final product = cartProvider.cartItems[index];
-                return CartItem(
-                  product: product,
-                  onRemove: () => cartProvider.removeFromCart(product),
-                  onUpdateQuantity: (newQuantity) async {
-                    try {
-                      await cartProvider.updateQuantity(product.maSanPham, newQuantity);
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Lỗi: ${e.toString()}')),
-                      );
-                    }
-                  },
-                );
-              },
-            )
+              onRefresh: _loadCartItems,
+              child: ListView.builder(
+                itemCount: cartProvider.cartItems.length,
+                itemBuilder: (context, index) {
+                  final product = cartProvider.cartItems[index];
+                  return CartItem(
+                    product: product,
+                    onRemove: () => cartProvider.removeFromCart(product),
+                    onUpdateQuantity: (newQuantity) async {
+                      try {
+                        await cartProvider.updateQuantity(product.maSanPham, newQuantity);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Lỗi: ${e.toString()}')),
+                        );
+                      }
+                    },
+                  );
+                },
+              )
           );
         },
       ),
