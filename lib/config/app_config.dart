@@ -7,7 +7,6 @@ class ApiConfig {
       return 'http://localhost:5240';  // URL cho web
     } else {
 
-      return 'http://10.0.2.2:5240';   // URL cho Android emulator
     }
   }
 }
