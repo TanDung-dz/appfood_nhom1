@@ -151,7 +151,7 @@ class ApiService {
         throw Exception(json.decode(response.body)['message'] ?? 'Đăng ký thất bại');
       }
     } catch (e) {
-      throw Exception('Lỗi đăng ký: $e');
+      throw Exception('Email hay số điện thoại đã được sử dụng. ');
     }
   }
 }

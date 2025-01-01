@@ -2,8 +2,9 @@ class DonHang {
   final int maDonHang;
   final int maNguoiDung;
   final int maPhuongThuc;
+  final int maDiaChi;
   final double? tongTien;
-  final int? trangThai;
+  late final int? trangThai;
   final DateTime? ngayTao;
   final DateTime? ngayCapNhat;
   final bool? an;
@@ -14,6 +15,7 @@ class DonHang {
     required this.maDonHang,
     required this.maNguoiDung,
     required this.maPhuongThuc,
+    required this.maDiaChi,
     this.tongTien,
     this.trangThai,
     this.ngayTao,
@@ -23,12 +25,12 @@ class DonHang {
     this.tenPhuongThuc,
   });
 
-  // Chuyển đổi từ JSON sang đối tượng Dart
   factory DonHang.fromJson(Map<String, dynamic> json) {
     return DonHang(
       maDonHang: json['maDonHang'],
       maNguoiDung: json['maNguoiDung'],
       maPhuongThuc: json['maPhuongThuc'],
+      maDiaChi: json['maDiaChi'], // Added this line
       tongTien: (json['tongTien'] as num?)?.toDouble(),
       trangThai: json['trangThai'],
       ngayTao: json['ngayTao'] != null
@@ -43,12 +45,12 @@ class DonHang {
     );
   }
 
-  // Chuyển đổi từ đối tượng Dart sang JSON
   Map<String, dynamic> toJson() {
     return {
       'maDonHang': maDonHang,
       'maNguoiDung': maNguoiDung,
       'maPhuongThuc': maPhuongThuc,
+      'maDiaChi': maDiaChi, // Added this line
       'tongTien': tongTien,
       'trangThai': trangThai,
       'ngayTao': ngayTao?.toIso8601String(),

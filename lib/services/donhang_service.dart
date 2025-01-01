@@ -7,16 +7,17 @@ class DonHangService {
 
   // Lấy danh sách đơn hàng
   Future<List<DonHang>> getAllDonHangs() async {
-    final url = Uri.parse('$_baseUrl/api/DonHang/Get');
-    final response = await http.get(url);
-
+    final response = await http.get(Uri.parse('$_baseUrl/api/DonHang/Get'));
+    print('Response body: ${response.body}');
     if (response.statusCode == 200) {
       final List<dynamic> jsonData = json.decode(response.body);
       return jsonData.map((json) => DonHang.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load DonHangs: ${response.reasonPhrase}');
+      throw Exception('Failed to load orders');
     }
   }
+
+
 
   // Lấy đơn hàng theo ID
   Future<DonHang?> getDonHangById(int id) async {
@@ -32,19 +33,31 @@ class DonHangService {
     }
   }
 
+
 // Tạo đơn hàng mới
   Future<DonHang> createDonHang(DonHang donHang) async {
-    final url = Uri.parse('$_baseUrl/api/DonHang/CreateDonHang');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(donHang.toJson()),
-    );
+    try {
+      final url = Uri.parse('$_baseUrl/api/DonHang/CreateDonHang');
+      print('Calling API: $url');
+      print('Request body: ${json.encode(donHang.toJson())}');
 
-    if (response.statusCode == 201) {
-      return DonHang.fromJson(json.decode(response.body));
-    } else {
-      throw Exception('Failed to create DonHang: ${response.reasonPhrase}');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(donHang.toJson()),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        return DonHang.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to create DonHang: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('Error in createDonHang: $e');
+      throw e;
     }
   }
 
