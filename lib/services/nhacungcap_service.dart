@@ -7,6 +7,8 @@ import '../models/NhaCungCap.dart';
 class NhaCungCapService {
   final String baseUrl = ApiConfig.baseUrl;
 
+
+
   // Lấy danh sách tất cả nhà cung cấp
   Future<List<NhaCungCap>> getAllSuppliers() async {
     try {
@@ -37,14 +39,23 @@ class NhaCungCapService {
   }
 
   // Tạo mới một nhà cung cấp
+  // Trong nha_cung_cap_service.dart
   Future<bool> createSupplier(NhaCungCap supplier) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/NhaCungCap/Create'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(supplier.toJson()),
+      var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('$baseUrl/api/NhaCungCap/CreateSupplier')
       );
+
+      request.fields['tenNhaCungCap'] = supplier.tenNhaCungCap ?? '';
+      request.fields['diaChi'] = supplier.diaChi ?? '';
+      request.fields['soDienThoai'] = supplier.soDienThoai ?? '';
+      request.fields['email'] = supplier.email ?? '';
+
+
+      var response = await request.send();
       return response.statusCode == 201;
+
     } catch (e) {
       throw Exception('Error: $e');
     }
@@ -54,7 +65,7 @@ class NhaCungCapService {
   Future<bool> updateSupplier(int id, NhaCungCap supplier) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/api/NhaCungCap/Update/$id'),
+        Uri.parse('$baseUrl/api/NhaCungCap/UpdateSupplier/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(supplier.toJson()),
       );
@@ -67,7 +78,7 @@ class NhaCungCapService {
   // Xóa (ẩn) một nhà cung cấp
   Future<bool> deleteSupplier(int id) async {
     try {
-      final response = await http.delete(Uri.parse('$baseUrl/api/NhaCungCap/Delete/$id'));
+      final response = await http.delete(Uri.parse('$baseUrl/api/NhaCungCap/DeleteSupplier/$id'));
       return response.statusCode == 204;
     } catch (e) {
       throw Exception('Error: $e');
@@ -88,4 +99,6 @@ class NhaCungCapService {
       throw Exception('Error: $e');
     }
   }
+
+
 }

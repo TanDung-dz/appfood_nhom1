@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/NguoiDung.dart';
 import '../../services/auth_service.dart';
 
+String username= '';
+
 class MoreScreen extends StatefulWidget {
   const MoreScreen({Key? key}) : super(key: key);
 
@@ -29,19 +31,7 @@ class _MoreScreenState extends State<MoreScreen> {
     try {
       setState(() => isLoading = true);
       final prefs = await SharedPreferences.getInstance();
-      final userDataString = prefs.getString('userData');
-
-      if (userDataString != null) {
-        try {
-          final userData = json.decode(userDataString);
-          setState(() {
-            currentUser = NguoiDung.fromJson(userData);
-          });
-        } catch (e) {
-          print('Lỗi khi parse userData: $e');
-          await prefs.remove('userData');
-        }
-      }
+      username = prefs.getString('username')!;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -252,7 +242,7 @@ class UserInfoCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    user?.tenNguoiDung ?? 'Chưa cập nhật',
+                    username ?? 'Chưa cập nhật',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
