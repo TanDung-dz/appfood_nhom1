@@ -1,6 +1,7 @@
 // screens/khuyen_mai/khuyen_mai_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/KhuyenMai.dart';
 import '../../../services/khuyenmai_service.dart';
 
@@ -16,13 +17,19 @@ class _KhuyenMaiScreenState extends State<KhuyenMaiScreen> {
   final KhuyenMaiService _service = KhuyenMaiService();
   bool isLoading = true;
   List<KhuyenMai> promotions = [];
-
+  bool _isAdmin = false;
   @override
   void initState() {
     super.initState();
     _loadPromotions();
   }
-
+  Future<void> _checkUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? role = prefs.getString('role');
+    setState(() {
+      _isAdmin = role == 'Admin'; // Kiểm tra quyền Admin
+    });
+  }
   Future<void> _loadPromotions() async {
     try {
       setState(() => isLoading = true);
@@ -56,6 +63,10 @@ class _KhuyenMaiScreenState extends State<KhuyenMaiScreen> {
   }
 
   Future<void> _deletePromotion(KhuyenMai promotion) async {
+    if (!_isAdmin) {
+      _showError('Chỉ Admin mới được phép xóa!');
+      return; // Chặn nếu không phải Admin
+    }
     try {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -108,12 +119,16 @@ class _KhuyenMaiScreenState extends State<KhuyenMaiScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddEditPromotionScreen(),
-            ),
-          ).then((_) => _loadPromotions());
+          if (_isAdmin) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AddEditPromotionScreen(),
+              ),
+            ).then((_) => _loadPromotions());
+          } else {
+            _showError('Chỉ Admin mới được phép thêm!');
+          }
         },
         child: const Icon(Icons.add),
       ),
@@ -158,14 +173,19 @@ class _KhuyenMaiScreenState extends State<KhuyenMaiScreen> {
                   ],
                   onSelected: (value) {
                     if (value == 'edit') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddEditPromotionScreen(
-                            promotion: promotion,
+                      if (_isAdmin) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                AddEditPromotionScreen(
+                                  promotion: promotion,
+                                ),
                           ),
-                        ),
-                      ).then((_) => _loadPromotions());
+                        ).then((_) => _loadPromotions());
+                      } else {
+                        _showError('Chỉ Admin mới được phép sửa!');
+                      }
                     } else if (value == 'delete') {
                       _deletePromotion(promotion);
                     }

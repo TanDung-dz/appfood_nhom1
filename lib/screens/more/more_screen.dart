@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/NguoiDung.dart';
 import '../../services/auth_service.dart';
 
-String username= '';
+String username = '';
 
 class MoreScreen extends StatefulWidget {
   const MoreScreen({Key? key}) : super(key: key);
@@ -20,6 +20,7 @@ class _MoreScreenState extends State<MoreScreen> {
   final ApiService _apiService = ApiService();
   NguoiDung? currentUser;
   bool isLoading = true;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -31,7 +32,9 @@ class _MoreScreenState extends State<MoreScreen> {
     try {
       setState(() => isLoading = true);
       final prefs = await SharedPreferences.getInstance();
-      username = prefs.getString('username')!;
+      username = prefs.getString('username') ?? 'Chưa cập nhật';
+      String? role = prefs.getString('role');
+      _isAdmin = role == 'Admin'; // Kiểm tra quyền Admin
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -128,22 +131,21 @@ class _MoreScreenState extends State<MoreScreen> {
               },
             ),
             const Divider(),
-            // Thêm mục Danh sách nhà cung cấp
-            ListTile(
-              leading: const Icon(Icons.business),
-              title: const Text('Danh sách nhà cung cấp'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NhaCungCapScreen(),
-                  ),
-                );
-              },
-            ),
-            const Divider(),
-            // Thêm mục Khuyến mãi
+            if (_isAdmin) // Chỉ Admin mới thấy
+              ListTile(
+                leading: const Icon(Icons.business),
+                title: const Text('Danh sách nhà cung cấp'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NhaCungCapScreen(),
+                    ),
+                  );
+                },
+              ),
+            if (_isAdmin) const Divider(),
             ListTile(
               leading: const Icon(Icons.discount),
               title: const Text('Khuyến mãi'),
@@ -158,21 +160,21 @@ class _MoreScreenState extends State<MoreScreen> {
               },
             ),
             const Divider(),
-              // Thêm mục Thông báo
-            ListTile(
-              leading: const Icon(Icons.notifications),
-              title: const Text('Thông báo'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationScreen(),
-                  ),
-                );
-              },
-            ),
-            const Divider(),
+            if (_isAdmin) // Chỉ Admin mới thấy
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('Thông báo'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationScreen(),
+                    ),
+                  );
+                },
+              ),
+            if (_isAdmin) const Divider(),
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Cài đặt'),
@@ -242,7 +244,7 @@ class UserInfoCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    username ?? 'Chưa cập nhật',
+                    username,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

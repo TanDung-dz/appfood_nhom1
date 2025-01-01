@@ -1,15 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/LoaiSanPham.dart';
-import '../../../services/loaisanpham_service.dart';  // Thêm import
+import '../../../services/loaisanpham_service.dart';
 
-class AddCategoryHeader extends StatelessWidget {
-  final Function? onCategoryAdded;  // Callback để cập nhật UI
-  final LoaiSanPhamService _loaiSanPhamService = LoaiSanPhamService();
+class AddCategoryHeader extends StatefulWidget {
+  final Function? onCategoryAdded;
 
-   AddCategoryHeader({
+  const AddCategoryHeader({
     Key? key,
     this.onCategoryAdded,
   }) : super(key: key);
+
+  @override
+  State<AddCategoryHeader> createState() => _AddCategoryHeaderState();
+}
+
+class _AddCategoryHeaderState extends State<AddCategoryHeader> {
+  final LoaiSanPhamService _loaiSanPhamService = LoaiSanPhamService();
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserRole();
+  }
+
+  Future<void> _checkUserRole() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? role = prefs.getString('role');
+    setState(() {
+      _isAdmin = role == 'Admin'; // Kiểm tra nếu quyền là Admin
+    });
+  }
 
   Future<void> _showAddCategoryDialog(BuildContext context) async {
     final TextEditingController tenLoaiController = TextEditingController();
@@ -51,7 +73,6 @@ class AddCategoryHeader extends StatelessWidget {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  // Kiểm tra dữ liệu nhập
                   if (tenLoaiController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -62,27 +83,20 @@ class AddCategoryHeader extends StatelessWidget {
                     return;
                   }
 
-                  // Tạo đối tượng LoaiSanPham mới
                   final newCategory = LoaiSanPham(
-                    maLoai: 0, // Server sẽ tạo mã
+                    maLoai: 0,
                     tenLoai: tenLoaiController.text.trim(),
                     moTa: moTaController.text.trim(),
                     an: false,
                   );
 
-                  // Gọi API tạo loại sản phẩm mới
                   final success = await _loaiSanPhamService.createLoaiSanPham(newCategory);
-
-                  // Đóng dialog
                   Navigator.pop(context);
 
                   if (success) {
-                    // Gọi callback để cập nhật UI
-                    if (onCategoryAdded != null) {
-                      onCategoryAdded!();
+                    if (widget.onCategoryAdded != null) {
+                      widget.onCategoryAdded!();
                     }
-
-                    // Hiển thị thông báo thành công
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Thêm loại món thành công'),
@@ -90,7 +104,6 @@ class AddCategoryHeader extends StatelessWidget {
                       ),
                     );
                   } else {
-                    // Hiển thị thông báo lỗi
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Không thể thêm loại món'),
@@ -99,7 +112,6 @@ class AddCategoryHeader extends StatelessWidget {
                     );
                   }
                 } catch (e) {
-                  // Xử lý lỗi
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Lỗi: ${e.toString()}'),
@@ -130,11 +142,12 @@ class AddCategoryHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          TextButton.icon(
-            onPressed: () => _showAddCategoryDialog(context),
-            icon: const Icon(Icons.add),
-            label: const Text('Thêm loại món'),
-          ),
+          if (_isAdmin) // Chỉ hiển thị nếu là Admin
+            TextButton.icon(
+              onPressed: () => _showAddCategoryDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Thêm loại món'),
+            ),
         ],
       ),
     );

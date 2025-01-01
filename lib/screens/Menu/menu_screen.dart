@@ -1,7 +1,7 @@
 import 'package:appfood_nhom1/screens/Menu/widgets/CartProvider.dart';
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'GioHang/gio_hang_screen.dart';
 import 'add/AddProductScreen.dart';
 import 'widgets/food_tab.dart';
@@ -15,8 +15,22 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  // Key để tham chiếu tới FoodTab
   final GlobalKey<FoodTabState> _foodTabKey = GlobalKey<FoodTabState>();
+  String? userRole; // Lưu vai trò của người dùng
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  // Hàm lấy vai trò từ SharedPreferences
+  Future<void> _loadUserRole() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userRole = prefs.getString('role'); // Lấy vai trò từ SharedPreferences
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,13 +38,11 @@ class _MenuScreenState extends State<MenuScreen> {
       appBar: AppBar(
         title: const Text('Thực đơn'),
         actions: [
-          // Thay thế IconButton bằng Stack để hiển thị số lượng sản phẩm
           Stack(
             children: [
               IconButton(
                 icon: const Icon(Icons.shopping_cart),
                 onPressed: () {
-                  // Chuyển đến màn hình giỏ hàng
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -39,7 +51,6 @@ class _MenuScreenState extends State<MenuScreen> {
                   );
                 },
               ),
-              // Hiển thị số lượng sản phẩm bằng Consumer
               Positioned(
                 right: 8,
                 top: 8,
@@ -61,7 +72,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         ),
                       ),
                     )
-                        : const SizedBox.shrink(); // Ẩn nếu không có sản phẩm
+                        : const SizedBox.shrink();
                   },
                 ),
               ),
@@ -69,7 +80,8 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ],
       ),
-      floatingActionButton: Column(
+      floatingActionButton: userRole == 'Admin'
+          ? Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -109,7 +121,8 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ),
         ],
-      ),
+      )
+          : null,
       body: DefaultTabController(
         length: 2,
         child: Column(
@@ -129,8 +142,15 @@ class _MenuScreenState extends State<MenuScreen> {
             Expanded(
               child: TabBarView(
                 children: [
-                  FoodTab(key: _foodTabKey), // Truyền GlobalKey vào FoodTab
-                  const CustomizeTab(),
+                  FoodTab(key: _foodTabKey),
+                  userRole == 'Admin'
+                      ? const CustomizeTab()
+                      : const Center(
+                    child: Text(
+                      'Bạn không có quyền truy cập vào mục này.',
+                      style: TextStyle(fontSize: 16, color: Colors.red),
+                    ),
+                  ),
                 ],
               ),
             ),
