@@ -2,13 +2,16 @@
 import 'package:appfood_nhom1/screens/Menu/widgets/CartProvider.dart';
 import 'package:appfood_nhom1/screens/login/login_screen.dart';
 import 'package:appfood_nhom1/screens/login/register_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'main_screen.dart';
 import 'utils/theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(
     MultiProvider(
       providers: [

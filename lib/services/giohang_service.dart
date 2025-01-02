@@ -1,15 +1,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/GioHang.dart';
 
 class GioHangService {
   final String _baseUrl = ApiConfig.baseUrl;
 
+  Future<String?> _getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
+
   // Lấy danh sách giỏ hàng
   Future<List<GioHang>> getAll() async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/GioHang/Get');
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -21,8 +33,14 @@ class GioHangService {
 
   // Lấy chi tiết giỏ hàng theo ID
   Future<GioHang?> getById(int id) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/GioHang/GetById/$id');
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       return GioHang.fromJson(json.decode(response.body));
@@ -35,10 +53,14 @@ class GioHangService {
 
   // Thêm sản phẩm vào giỏ hàng
   Future<GioHang> createGioHang(GioHang gioHang) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/GioHang/CreateGioHang');
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: json.encode(gioHang.toJson()),
     );
 
@@ -51,10 +73,14 @@ class GioHangService {
 
   // Cập nhật giỏ hàng
   Future<void> updateGioHang(int id, GioHang gioHang) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/GioHang/UpdateGioHang/$id');
     final response = await http.put(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: json.encode(gioHang.toJson()),
     );
 
@@ -65,27 +91,34 @@ class GioHangService {
 
   // Xóa sản phẩm khỏi giỏ hàng
   Future<void> deleteGioHang(int id) async {
-    try {
-      final url = Uri.parse('$_baseUrl/api/GioHang/DeleteGioHang/$id');
-      final response = await http.delete(url);
+    final token = await _getToken();
+    final url = Uri.parse('$_baseUrl/api/GioHang/DeleteGioHang/$id');
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-      // Kiểm tra response status
-      if (response.statusCode == 204 || response.statusCode == 200) {
-        return;
-      }
-      print('Delete response status: ${response.statusCode}');
-      print('Delete response body: ${response.body}');
-      throw Exception('Failed to delete gio hang');
-    } catch (e) {
-      print('Delete error: $e');
-      throw Exception('Failed to delete gio hang');
+    // Kiểm tra response status
+    if (response.statusCode == 204 || response.statusCode == 200) {
+      return;
     }
+    print('Delete response status: ${response.statusCode}');
+    print('Delete response body: ${response.body}');
+    throw Exception('Failed to delete gio hang');
   }
 
   // Tìm kiếm giỏ hàng theo từ khóa
   Future<List<GioHang>> search(String keyword) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/GioHang/Search/$keyword');
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);

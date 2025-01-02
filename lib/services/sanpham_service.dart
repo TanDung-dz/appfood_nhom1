@@ -1,17 +1,25 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/SanPham.dart'; // Chỉ giữ import này
 
 class SanPhamService {
   final String baseUrl = ApiConfig.baseUrl;
-
+  Future<String?> _getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
   // Lấy danh sách sản phẩm
   Future<List<SanPham>> getAllSanPham() async {
+    final token = await _getToken();
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/api/SanPham/Get'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -27,9 +35,13 @@ class SanPhamService {
 
   // Lấy chi tiết sản phẩm
   Future<SanPham> getSanPhamById(int id) async {
+    final token = await _getToken();
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/api/SanPham/GetById/$id'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -44,9 +56,13 @@ class SanPhamService {
 
   // Tìm kiếm sản phẩm
   Future<List<SanPham>> searchSanPham(String keyword) async {
+    final token = await _getToken();
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/api/SanPham/Search/$keyword'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -62,12 +78,14 @@ class SanPhamService {
 
   // Thêm sản phẩm mới
   Future<bool> createSanPham(SanPham sanPham) async {
+    final token = await _getToken();
     try {
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/api/SanPham/Create'),
-      );
 
+      );
+      request.headers['Authorization'] = 'Bearer $token'; // Thêm header
       _addProductFields(request, sanPham);
       await _addProductImages(request, sanPham);
 
@@ -80,12 +98,13 @@ class SanPhamService {
 
   // Cập nhật sản phẩm
   Future<bool> updateSanPham(int id, SanPham sanPham) async {
+    final token = await _getToken();
     try {
       var request = http.MultipartRequest(
         'PUT',
         Uri.parse('$baseUrl/api/SanPham/Update/$id'),
       );
-
+      request.headers['Authorization'] = 'Bearer $token'; // Thêm header
       _addProductFields(request, sanPham);
       await _addProductImages(request, sanPham);
 
@@ -98,9 +117,13 @@ class SanPhamService {
 
   // Xóa sản phẩm (soft delete)
   Future<bool> deleteSanPham(int id) async {
+    final token = await _getToken();
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl/api/SanPham/Delete/$id'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
       );
       return response.statusCode == 204;
     } catch (e) {

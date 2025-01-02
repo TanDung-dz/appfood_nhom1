@@ -1,14 +1,26 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/PhuongThucThanhToan.dart';
 
 class PhuongThucThanhToanService {
   final String _baseUrl = ApiConfig.baseUrl;
 
+  Future<String?> _getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
+
   /// Lấy danh sách tất cả phương thức thanh toán
   Future<List<PhuongThucThanhToan>> fetchAllPaymentMethods() async {
-    final response = await http.get(Uri.parse('$_baseUrl/api/PhuongThucThanhToan/Get'));
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/PhuongThucThanhToan/Get'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -20,7 +32,13 @@ class PhuongThucThanhToanService {
 
   /// Lấy thông tin phương thức thanh toán theo ID
   Future<PhuongThucThanhToan?> fetchPaymentMethodById(int id) async {
-    final response = await http.get(Uri.parse('$_baseUrl/api/PhuongThucThanhToan/GetById/$id'));
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/PhuongThucThanhToan/GetById/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       return PhuongThucThanhToan.fromJson(json.decode(response.body));
@@ -33,9 +51,13 @@ class PhuongThucThanhToanService {
 
   /// Tạo mới phương thức thanh toán
   Future<void> createPaymentMethod(PhuongThucThanhToan paymentMethod) async {
+    final token = await _getToken();
     final response = await http.post(
       Uri.parse('$_baseUrl/api/PhuongThucThanhToan/CreatePaymentMethod'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: json.encode(paymentMethod.toJson()),
     );
 
@@ -46,9 +68,13 @@ class PhuongThucThanhToanService {
 
   /// Cập nhật phương thức thanh toán
   Future<void> updatePaymentMethod(int id, PhuongThucThanhToan paymentMethod) async {
+    final token = await _getToken();
     final response = await http.put(
       Uri.parse('$_baseUrl/api/PhuongThucThanhToan/UpdatePaymentMethod/$id'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: json.encode(paymentMethod.toJson()),
     );
 
@@ -59,8 +85,12 @@ class PhuongThucThanhToanService {
 
   /// Xóa (ẩn) phương thức thanh toán
   Future<void> deletePaymentMethod(int id) async {
+    final token = await _getToken();
     final response = await http.delete(
       Uri.parse('$_baseUrl/api/PhuongThucThanhToan/DeletePaymentMethod/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
 
     if (response.statusCode != 204) {
@@ -70,7 +100,13 @@ class PhuongThucThanhToanService {
 
   /// Tìm kiếm phương thức thanh toán theo từ khóa
   Future<List<PhuongThucThanhToan>> searchPaymentMethods(String keyword) async {
-    final response = await http.get(Uri.parse('$_baseUrl/api/PhuongThucThanhToan/Search/$keyword'));
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/PhuongThucThanhToan/Search/$keyword'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);

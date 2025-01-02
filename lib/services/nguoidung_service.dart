@@ -1,11 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/NguoiDung.dart';
 
 class NguoiDungService {
   final String _baseUrl = ApiConfig.baseUrl; // Lấy URL từ ApiConfig
+
+  Future<String?> _getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -24,8 +30,14 @@ class NguoiDungService {
 
   // Lấy danh sách người dùng
   Future<List<NguoiDung>> getAllNguoiDungs() async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/NguoiDung/Get');
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonData = json.decode(response.body);
@@ -37,8 +49,14 @@ class NguoiDungService {
 
   // Lấy người dùng theo ID
   Future<NguoiDung?> getNguoiDungById(int id) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/NguoiDung/GetById/$id');
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       return NguoiDung.fromJson(json.decode(response.body));
@@ -51,8 +69,14 @@ class NguoiDungService {
 
   // Tìm người dùng theo username
   Future<NguoiDung?> getNguoiDungByUsername(String username) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/NguoiDung/GetByUsername/$username');
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       return NguoiDung.fromJson(json.decode(response.body));
@@ -65,10 +89,11 @@ class NguoiDungService {
 
   // Tạo người dùng mới
   Future<NguoiDung> createNguoiDung(NguoiDung nguoiDung) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/NguoiDung/CreateNguoiDung');
     final request = http.MultipartRequest('POST', url);
 
-    // Thêm dữ liệu người dùng
+    request.headers['Authorization'] = 'Bearer $token'; // Thêm header
     request.fields.addAll({
       'tenNguoiDung': nguoiDung.tenNguoiDung ?? '',
       'email': nguoiDung.email ?? '',
@@ -79,7 +104,6 @@ class NguoiDungService {
       'an': nguoiDung.an?.toString() ?? '',
     });
 
-    // Thêm hình ảnh (nếu có)
     if (nguoiDung.img != null) {
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -101,10 +125,11 @@ class NguoiDungService {
 
   // Cập nhật thông tin người dùng
   Future<void> updateNguoiDung(int id, NguoiDung nguoiDung) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/NguoiDung/UpdateNguoiDung/$id');
     final request = http.MultipartRequest('PUT', url);
 
-    // Thêm dữ liệu người dùng
+    request.headers['Authorization'] = 'Bearer $token'; // Thêm header
     request.fields.addAll({
       'tenNguoiDung': nguoiDung.tenNguoiDung ?? '',
       'email': nguoiDung.email ?? '',
@@ -115,7 +140,6 @@ class NguoiDungService {
       'an': nguoiDung.an?.toString() ?? '',
     });
 
-    // Thêm hình ảnh (nếu có)
     if (nguoiDung.img != null) {
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -135,8 +159,14 @@ class NguoiDungService {
 
   // Xóa (ẩn) người dùng
   Future<void> deleteNguoiDung(int id) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/NguoiDung/DeleteNguoiDung/$id');
-    final response = await http.delete(url);
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode != 204) {
       throw Exception('Failed to delete NguoiDung: ${response.reasonPhrase}');
@@ -145,8 +175,14 @@ class NguoiDungService {
 
   // Tìm kiếm người dùng theo từ khóa
   Future<List<NguoiDung>> searchNguoiDungs(String keyword) async {
+    final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/NguoiDung/Search/$keyword');
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonData = json.decode(response.body);

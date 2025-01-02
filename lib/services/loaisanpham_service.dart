@@ -1,18 +1,28 @@
 // lib/services/loai_san_pham_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/LoaiSanPham.dart';
 
 class LoaiSanPhamService {
   final String baseUrl = ApiConfig.baseUrl;
 
+  Future<String?> _getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
+
   // Lấy danh sách loại sản phẩm
   Future<List<LoaiSanPham>> getLoaiSanPham() async {
+    final token = await _getToken();
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/api/LoaiSanPham/Get'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -28,10 +38,14 @@ class LoaiSanPhamService {
 
   // Lấy chi tiết loại sản phẩm theo ID
   Future<LoaiSanPham> getLoaiSanPhamById(int id) async {
+    final token = await _getToken();
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/api/LoaiSanPham/GetById/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -46,12 +60,16 @@ class LoaiSanPhamService {
 
   // Tạo loại sản phẩm mới
   Future<bool> createLoaiSanPham(LoaiSanPham loaiSanPham) async {
+    final token = await _getToken();
     try {
       print('Creating new category with data: ${json.encode(loaiSanPham.toJson())}');
 
       final response = await http.post(
         Uri.parse('$baseUrl/api/LoaiSanPham/CreateProductType'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: json.encode(loaiSanPham.toJson()),
       );
 
@@ -61,7 +79,8 @@ class LoaiSanPhamService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return true;
       } else {
-        throw Exception('Failed to create category. Status: ${response.statusCode}, Body: ${response.body}');
+        throw Exception(
+            'Failed to create category. Status: ${response.statusCode}, Body: ${response.body}');
       }
     } catch (e) {
       print('Error creating category: $e');
@@ -71,10 +90,14 @@ class LoaiSanPhamService {
 
   // Cập nhật loại sản phẩm
   Future<bool> updateLoaiSanPham(int id, LoaiSanPham loaiSanPham) async {
+    final token = await _getToken();
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/api/LoaiSanPham/Update/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: json.encode(loaiSanPham.toJson()),
       );
 
@@ -86,10 +109,14 @@ class LoaiSanPhamService {
 
   // Xóa loại sản phẩm (soft delete)
   Future<bool> deleteLoaiSanPham(int id) async {
+    final token = await _getToken();
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl/api/LoaiSanPham/Delete/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       return response.statusCode == 204;
@@ -100,6 +127,7 @@ class LoaiSanPhamService {
 
   // Tìm kiếm loại sản phẩm theo keyword
   Future<List<LoaiSanPham>> searchLoaiSanPham(String keyword) async {
+    final token = await _getToken();
     try {
       if (keyword.isEmpty) {
         throw Exception('Keyword cannot be empty');
@@ -107,7 +135,10 @@ class LoaiSanPhamService {
 
       final response = await http.get(
         Uri.parse('$baseUrl/api/LoaiSanPham/Search/$keyword'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {

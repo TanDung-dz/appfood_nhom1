@@ -1,15 +1,27 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/DanhGia.dart';
 
 class DanhGiaService {
   final String baseUrl = ApiConfig.baseUrl;
 
+  Future<String?> _getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
+
   /// Lấy danh sách tất cả đánh giá
   Future<List<DanhGia>> fetchDanhGias() async {
-    final response = await http.get(Uri.parse('$baseUrl/api/DanhGia/Get'));
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/DanhGia/Get'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -21,7 +33,13 @@ class DanhGiaService {
 
   /// Lấy thông tin chi tiết của một đánh giá theo ID
   Future<DanhGia> fetchDanhGiaById(int id) async {
-    final response = await http.get(Uri.parse('$baseUrl/api/DanhGia/GetById/$id'));
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/DanhGia/GetById/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -33,9 +51,13 @@ class DanhGiaService {
 
   /// Tạo mới một đánh giá
   Future<DanhGia> createDanhGia(DanhGia newDanhGia) async {
+    final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/api/DanhGia/CreateDanhGia'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: json.encode(newDanhGia.toJson()),
     );
 
@@ -49,9 +71,13 @@ class DanhGiaService {
 
   /// Cập nhật một đánh giá
   Future<void> updateDanhGia(int id, DanhGia updatedDanhGia) async {
+    final token = await _getToken();
     final response = await http.put(
       Uri.parse('$baseUrl/api/DanhGia/UpdateDanhGia/$id'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: json.encode(updatedDanhGia.toJson()),
     );
 
@@ -62,8 +88,12 @@ class DanhGiaService {
 
   /// Xóa (ẩn) một đánh giá
   Future<void> deleteDanhGia(int id) async {
+    final token = await _getToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/api/DanhGia/DeleteDanhGia/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
     if (response.statusCode != 204) {
       throw Exception('Failed to delete DanhGia with ID $id');
@@ -72,7 +102,13 @@ class DanhGiaService {
 
   /// Tìm kiếm đánh giá theo từ khóa
   Future<List<DanhGia>> searchDanhGias(String keyword) async {
-    final response = await http.get(Uri.parse('$baseUrl/api/DanhGia/Search/$keyword'));
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/DanhGia/Search/$keyword'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -82,11 +118,15 @@ class DanhGiaService {
     }
   }
 
+  /// Tạo mới đánh giá với hình ảnh
   Future<DanhGia> createDanhGiaWithImage(DanhGia newDanhGia, File? imageFile) async {
+    final token = await _getToken();
     var request = http.MultipartRequest(
       'POST',
       Uri.parse('$baseUrl/api/DanhGia/CreateDanhGia'),
     );
+
+    request.headers['Authorization'] = 'Bearer $token';
 
     // Add review data fields
     request.fields.addAll({
