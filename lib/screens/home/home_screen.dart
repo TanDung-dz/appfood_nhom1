@@ -4,8 +4,10 @@ import 'widgets/notification_card.dart';
 import 'widgets/menu_grid.dart';
 import 'widgets/image_slider.dart';
 
+String? userRole; // Lưu vai trò của người dùng
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +28,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   AppBar _buildAppBar() {
+    userRole == 'Admin';
     return AppBar(
       title: const Text(
         'Quản lý nhà hàng',

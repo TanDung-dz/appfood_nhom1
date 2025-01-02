@@ -20,16 +20,21 @@ class CartProvider with ChangeNotifier {
   double get totalPrice => _cartItems.fold(0, (total, item) =>
   total + (item.gia ?? 0) * (item.soLuong ?? 1));
 
+  // Trong CartProvider, kiểm tra lại phương thức discountedPrice
   double get discountedPrice {
     if (_appliedKhuyenMai != null && _appliedKhuyenMai!.giaTri != null) {
-      final giaTriGiam = _appliedKhuyenMai!.giaTri!;
-      final tongTienSauGiam = totalPrice - giaTriGiam;
-      return tongTienSauGiam > 0 ? tongTienSauGiam : 0; // Không để giá trị âm
+      print('Tổng tiền trước giảm: $totalPrice');
+      print('Giá trị khuyến mãi: ${_appliedKhuyenMai!.giaTri}');
+
+      double giaTriGiam = _appliedKhuyenMai!.giaTri!;
+      double tongTienSauGiam = totalPrice - giaTriGiam;
+
+      print('Tổng tiền sau giảm: $tongTienSauGiam');
+
+      return tongTienSauGiam > 0 ? tongTienSauGiam : 0;
     }
-    return totalPrice; // Không áp dụng khuyến mãi
+    return totalPrice;
   }
-
-
   int get cartItemCount => _cartItems.length;
 
   Future<void> addToCart(SanPham product) async {
@@ -104,24 +109,31 @@ class CartProvider with ChangeNotifier {
 
   Future<bool> applyKhuyenMai(String tenKhuyenMai) async {
     try {
-      final khuyenMais = await _khuyenMaiService.searchKhuyenMai(tenKhuyenMai);
+      // Sử dụng getKhuyenMaiByName thay vì searchKhuyenMai
+      final khuyenMai = await _khuyenMaiService.getKhuyenMaiByName(tenKhuyenMai);
 
-      if (khuyenMais.isNotEmpty) {
-        final khuyenMai = khuyenMais.firstWhere(
-              (km) => km.ten?.toLowerCase() == tenKhuyenMai.toLowerCase(),
-          orElse: () => khuyenMais.first,
-        );
+      // Kiểm tra điều kiện khuyến mãi
+      if (khuyenMai != null &&
+          khuyenMai.giaTri != null &&
+          khuyenMai.giaTri! > 0 &&
+          khuyenMai.batDau != null &&
+          khuyenMai.ketThuc != null) {
 
-        if (khuyenMai.giaTri != null && khuyenMai.giaTri! > 0) {
+        // Kiểm tra thời hạn khuyến mãi
+        final now = DateTime.now();
+        if (now.isAfter(khuyenMai.batDau!) && now.isBefore(khuyenMai.ketThuc!)) {
           _appliedKhuyenMai = khuyenMai;
-          notifyListeners(); // Cập nhật giao diện
+          notifyListeners();
           return true;
         } else {
-          print('Khuyến mãi không có giá trị hợp lệ.');
+          print('Khuyến mãi đã hết hạn hoặc chưa bắt đầu');
+          return false;
         }
       }
 
+      print('Khuyến mãi không hợp lệ');
       return false;
+
     } catch (e) {
       print('Error applying promotion: $e');
       return false;

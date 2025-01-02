@@ -23,6 +23,15 @@ class FoodTabState extends State<FoodTab> {
   String? _error;
   String selectedCategory = 'Tất cả';
 
+  List<SanPham> getFilteredProducts() {
+    if (selectedCategory == 'Tất cả') {
+      return _sanPhams;
+    }
+    return _sanPhams.where((sanPham) {
+      return sanPham.tenLoai == selectedCategory;
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +63,9 @@ class FoodTabState extends State<FoodTab> {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy danh sách sản phẩm đã lọc
+    final filteredProducts = getFilteredProducts();
+
     return Column(
       children: [
         CategoryList(
@@ -67,7 +79,7 @@ class FoodTabState extends State<FoodTab> {
         ),
         AddCategoryHeader(
           onCategoryAdded: () {
-            loadData(); // Tải lại danh sách loại sản phẩm
+            loadData();
           },
         ),
         Expanded(
@@ -88,7 +100,10 @@ class FoodTabState extends State<FoodTab> {
           )
               : RefreshIndicator(
             onRefresh: loadData,
-            child: FoodGrid(sanPhams: _sanPhams, onProductAdded: () {  },),
+            child: FoodGrid(
+              sanPhams: filteredProducts, // Truyền danh sách đã lọc
+              onProductAdded: () {},
+            ),
           ),
         ),
       ],

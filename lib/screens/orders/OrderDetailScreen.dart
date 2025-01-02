@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/DonHang.dart';
 import '../../models/ChiTietDonHang.dart';
 import '../../services/chitietdonhang_service.dart';
 import '../../services/donhang_service.dart';
+import 'events.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final DonHang order;
@@ -22,12 +24,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   String? _error;
   List<ChiTietDonHang> _orderDetails = [];
   late int currentStatus;
+  String? userRole;
 
   @override
   void initState() {
     super.initState();
+    _loadUserRole();
     currentStatus = widget.order.trangThai ?? 0;
     _loadOrderDetails();
+  }
+
+  Future<void> _loadUserRole() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userRole = prefs.getString('role');
+    });
   }
 
   Future<void> _loadOrderDetails() async {
@@ -52,7 +63,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       });
     }
   }
-
+//xuly trnag thai dang giao
   Future<void> _updateOrderStatus() async {
     try {
       setState(() => _isUpdating = true);
@@ -85,14 +96,64 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã chuyển sang trạng thái đang giao')),
         );
-        Navigator.pop(context, true);
+        OrderEvents.orderStatusChanged.add(true);
+        Navigator.pop(context);
       }
     } catch (e) {
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(content: Text('Lỗi: ${e.toString()}')),
+      //   );
+      // }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
+    }
+  }
+
+  // chuyen sang trang thai hoan thanh
+  Future<void> _updateToCompleted() async {
+    try {
+      setState(() => _isUpdating = true);
+
+      DonHang updatedOrder = DonHang(
+        maDonHang: widget.order.maDonHang,
+        maNguoiDung: widget.order.maNguoiDung,
+        maPhuongThuc: widget.order.maPhuongThuc,
+        maDiaChi: widget.order.maDiaChi,
+        tongTien: widget.order.tongTien,
+        trangThai: 3, // Cập nhật thành Hoàn thành
+        ngayTao: widget.order.ngayTao,
+        ngayCapNhat: DateTime.now(),
+        an: widget.order.an,
+        tenNguoiDung: widget.order.tenNguoiDung,
+        tenPhuongThuc: widget.order.tenPhuongThuc,
+      );
+
+      await _donHangService.updateDonHang(
+          widget.order.maDonHang,
+          updatedOrder
+      );
+
+      setState(() {
+        currentStatus = 3;
+        widget.order.trangThai = 3;
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: ${e.toString()}')),
+          const SnackBar(content: Text('Đơn hàng đã hoàn thành')),
         );
+        OrderEvents.orderStatusChanged.add(true);
+        Navigator.pop(context);
       }
+    // } catch (e) {
+    //   if (mounted) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(content: Text('Lỗi: ${e.toString()}')),
+    //     );
+    //   }
     } finally {
       if (mounted) {
         setState(() => _isUpdating = false);
@@ -211,25 +272,49 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildUpdateStatusButton() {
-    if (currentStatus != 1) return const SizedBox();
+    if (currentStatus != 1 && currentStatus != 2) return const SizedBox();
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ElevatedButton(
-        onPressed: _isUpdating ? null : _updateOrderStatus,
-        style: ElevatedButton.styleFrom(
-          minimumSize: const Size.fromHeight(50),
-          backgroundColor: Colors.orange,
+    if (currentStatus == 1 && userRole == 'Admin') {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: ElevatedButton(
+          onPressed: _isUpdating ? null : _updateOrderStatus,
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+            backgroundColor: Colors.orange,
+          ),
+          child: _isUpdating
+              ? const CircularProgressIndicator(color: Colors.white)
+              : const Text(
+            'Chuyển sang trạng thái đang giao',
+            style: TextStyle(fontSize: 16),
+          ),
         ),
-        child: _isUpdating
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Text(
-          'Chuyển sang trạng thái đang giao',
-          style: TextStyle(fontSize: 16),
+      );
+    }
+
+    if (currentStatus == 2) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: ElevatedButton(
+          onPressed: _isUpdating ? null : _updateToCompleted,
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+            backgroundColor: Colors.green,
+          ),
+          child: _isUpdating
+              ? const CircularProgressIndicator(color: Colors.white)
+              : const Text(
+            'Đã nhận hàng',
+            style: TextStyle(fontSize: 16, color: Colors.white),
+          ),
         ),
-      ),
-    );
+      );
+    }
+
+    return const SizedBox();
   }
+
 
   void _showNoteDialog(String note) {
     showDialog(

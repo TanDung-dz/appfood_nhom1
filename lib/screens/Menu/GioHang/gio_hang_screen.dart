@@ -189,12 +189,15 @@ class _GioHangScreenState extends State<GioHangScreen> {
                                       maNguoiDung: 1,
                                       maPhuongThuc: selectedPaymentId,
                                       maDiaChi: 1,
-                                      tongTien: cartProvider.discountedPrice, // Số tiền sau giảm giá
+                                      tongTien: cartProvider.discountedPrice, // Đã là giá sau khuyến mãi
                                       trangThai: 1,
                                       ngayTao: DateTime.now(),
                                     );
 
-
+                                    print('Tổng tiền trước khuyến mãi: ${cartProvider.totalPrice}');
+                                    print('Mã khuyến mãi áp dụng: ${cartProvider.appliedKhuyenMai?.ten}');
+                                    print('Giá trị khuyến mãi: ${cartProvider.appliedKhuyenMai?.giaTri}');
+                                    print('Tổng tiền sau khuyến mãi: ${cartProvider.discountedPrice}');
                                     print('Creating order with data: ${order.toJson()}');
                                     final createdOrder = await donHangService.createDonHang(order);
 
@@ -204,8 +207,10 @@ class _GioHangScreenState extends State<GioHangScreen> {
                                         maSanPham: item.maSanPham,
                                         maDonHang: createdOrder.maDonHang,
                                         soLuong: item.soLuong,
-                                        maKhuyenMaiApDung: cartProvider.appliedKhuyenMai?.maKhuyenMai, // Lưu mã khuyến mãi
+                                        maKhuyenMaiApDung: cartProvider.appliedKhuyenMai?.maKhuyenMai,
                                         tenSanPham: item.tenSanPham,
+                                        ghiChu: cartProvider.appliedKhuyenMai != null ?
+                                        "Đã áp dụng khuyến mãi: ${cartProvider.appliedKhuyenMai!.ten} - Giảm ${cartProvider.appliedKhuyenMai!.giaTri} VND" : null,
                                       );
                                       await chiTietDonHangService.createChiTietDonHang(chiTietDonHang);
                                     }

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:appfood_nhom1/screens/orders/events.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/DonHang.dart';
@@ -14,20 +17,50 @@ class _OrdersScreenState extends State<OrdersScreen> {
   final DonHangService _donHangService = DonHangService();
   List<DonHang> _orders = [];
   bool _isLoading = true;
-
+  late StreamSubscription _orderSubscription;
 
 
   @override
   void initState() {
     super.initState();
     _loadOrders();
+    _orderSubscription = OrderEvents.orderStatusChanged.stream.listen((_) {
+      _loadOrders();
+    });
   }
 
-  Future<void> _loadOrders() async {
+  @override
+  void dispose() {
+    _orderSubscription.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadOrders({String? statusFilter}) async {
     try {
+      setState(() => _isLoading = true);
+
+      // Gọi dịch vụ để lấy danh sách đơn hàng
       final orders = await _donHangService.getAllDonHangs();
+
       setState(() {
-        _orders = orders;
+        if (statusFilter != null) {
+          // Lọc danh sách đơn hàng theo trạng thái nếu có `statusFilter`
+          _orders = orders.where((order) {
+            switch (statusFilter) {
+              case 'processing':
+                return order.trangThai == 1;
+              case 'delivering':
+                return order.trangThai == 2;
+              case 'completed':
+                return order.trangThai == 3;
+              default:
+                return false;
+            }
+          }).toList();
+        } else {
+          // Nếu không có `statusFilter`, tải toàn bộ đơn hàng
+          _orders = orders;
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -37,6 +70,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
     }
   }
+
 
   Widget _buildOrderList(String status) {
     final filteredOrders = _orders.where((order) {
@@ -158,8 +192,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Đơn hàng'),
-          bottom: const TabBar(
-            tabs: [
+          bottom: TabBar(
+            onTap: (index) {
+              // Tải lại danh sách theo tab được chọn
+              switch (index) {
+                case 0:
+                  _loadOrders(statusFilter: 'processing');
+                  break;
+                case 1:
+                  _loadOrders(statusFilter: 'delivering');
+                  break;
+                case 2:
+                  _loadOrders(statusFilter: 'completed');
+                  break;
+              }
+            },
+            tabs: const [
               Tab(text: 'Đang xử lý'),
               Tab(text: 'Đang giao'),
               Tab(text: 'Hoàn thành'),

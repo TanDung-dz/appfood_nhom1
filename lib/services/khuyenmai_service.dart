@@ -42,6 +42,22 @@ class KhuyenMaiService {
     }
   }
 
+  Future<KhuyenMai> getKhuyenMaiByName(String name) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/KhuyenMai/GetByName/$name'),
+      );
+
+      if (response.statusCode == 200) {
+        return KhuyenMai.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to load khuyen mai details: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error getting khuyen mai details: $e');
+    }
+  }
+
   // Tạo khuyến mãi mới
   Future<KhuyenMai> createKhuyenMai(KhuyenMai khuyenMai) async {
     try {
@@ -110,4 +126,6 @@ class KhuyenMaiService {
       throw Exception('Error searching khuyen mai: $e');
     }
   }
+
+
 }
