@@ -49,6 +49,23 @@ class DanhGiaService {
     }
   }
 
+  Future<List<DanhGia>> fetchDanhGiaProductId(int id) async {
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/DanhGia/GetByProductId/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => DanhGia.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load DanhGia with ID $id');
+    }
+  }
+
   /// Tạo mới một đánh giá
   Future<DanhGia> createDanhGia(DanhGia newDanhGia) async {
     final token = await _getToken();

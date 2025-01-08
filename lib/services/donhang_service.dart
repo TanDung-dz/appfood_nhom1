@@ -51,6 +51,34 @@ class DonHangService {
     }
   }
 
+  // Lấy danh sách đơn hàng theo ID người dùng
+  Future<List<DonHang>> getDonHangsByUserId(int Id) async {
+    final token = await _getToken();
+    final url = Uri.parse('$_baseUrl/api/DonHang/GetByUserId/$Id');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = json.decode(response.body);
+        return jsonData.map((json) => DonHang.fromJson(json)).toList();
+      } else if (response.statusCode == 404) {
+        return []; // Không có đơn hàng nào cho user
+      } else {
+        throw Exception('Failed to fetch DonHangs by User ID: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('Error in getDonHangsByUserId: $e');
+      throw e;
+    }
+  }
+
+
   // Tạo đơn hàng mới
   Future<DonHang> createDonHang(DonHang donHang) async {
     final token = await _getToken();
@@ -81,22 +109,30 @@ class DonHangService {
       throw e;
     }
   }
-
-  // Cập nhật đơn hàng
+  //capnhap
   Future<void> updateDonHang(int id, DonHang donHang) async {
     final token = await _getToken();
     final url = Uri.parse('$_baseUrl/api/DonHang/UpdateDonHang/$id');
-    final response = await http.put(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: json.encode(donHang.toJson()),
-    );
 
-    if (response.statusCode != 204) {
-      throw Exception('Failed to update DonHang: ${response.reasonPhrase}');
+    try {
+      print('Sending update request to: $url');
+      print('Request body: ${json.encode(donHang.toJson())}');
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(donHang.toJson()),
+      );
+
+      if (response.statusCode != 204) {
+        throw Exception('Failed to update DonHang: ${response.body}');
+      }
+    } catch (e) {
+      print('Error in updateDonHang: $e');
+      throw e;
     }
   }
 

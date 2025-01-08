@@ -51,23 +51,67 @@ class GioHangService {
     }
   }
 
-  // Thêm sản phẩm vào giỏ hàng
-  Future<GioHang> createGioHang(GioHang gioHang) async {
-    final token = await _getToken();
-    final url = Uri.parse('$_baseUrl/api/GioHang/CreateGioHang');
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: json.encode(gioHang.toJson()),
-    );
+  // Lấy danh sách giỏ hàng theo ID người dùng
+  Future<List<GioHang>> getByUserId(int id) async {
+    try {
+      final token = await _getToken();
+      final url = Uri.parse('$_baseUrl/api/GioHang/GetByUserId/$id');
+      print('Getting cart for user $id');
 
-    if (response.statusCode == 201) {
-      return GioHang.fromJson(json.decode(response.body));
-    } else {
-      throw Exception('Failed to create gio hang');
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final dynamic data = json.decode(response.body);
+        if (data is List) {
+          return data.map((item) => GioHang.fromJson(Map<String, dynamic>.from(item))).toList();
+        } else if (data is Map) {
+          // Convert Map<dynamic, dynamic> to Map<String, dynamic>
+          return [GioHang.fromJson(Map<String, dynamic>.from(data))];
+        }
+        return [];
+      } else if (response.statusCode == 404) {
+        return [];
+      } else {
+        throw Exception('Failed to load cart items');
+      }
+    } catch (e) {
+      print('Error in getByUserId: $e');
+      throw e;
+    }
+  }
+
+
+  Future<GioHang> createGioHang(GioHang gioHang) async {
+    try {
+      final token = await _getToken();
+      final url = Uri.parse('$_baseUrl/api/GioHang/CreateGioHang');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(gioHang.toJson()),
+      );
+
+      // Thay đổi điều kiện kiểm tra response
+      if (response.statusCode == 200 || response.statusCode == 201) { // Chấp nhận cả 200 và 201
+        return GioHang.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to create gio hang: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in createGioHang: $e');
+      throw e;
     }
   }
 

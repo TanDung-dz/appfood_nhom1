@@ -15,18 +15,34 @@ class PhuongThucThanhToanService {
   /// Lấy danh sách tất cả phương thức thanh toán
   Future<List<PhuongThucThanhToan>> fetchAllPaymentMethods() async {
     final token = await _getToken();
-    final response = await http.get(
-      Uri.parse('$_baseUrl/api/PhuongThucThanhToan/Get'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+    print('Token: $token'); // Thêm log này để kiểm tra token
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return data.map((json) => PhuongThucThanhToan.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load payment methods');
+    // Kiểm tra token có tồn tại không
+    if (token == null || token.isEmpty) {
+      throw Exception('Token không tồn tại hoặc đã hết hạn');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/PhuongThucThanhToan/Get'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');  // Thêm log này
+      print('Response body: ${response.body}');  // Thêm log này
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => PhuongThucThanhToan.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load payment methods: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in fetchAllPaymentMethods: $e');  // Thêm log này
+      rethrow;
     }
   }
 

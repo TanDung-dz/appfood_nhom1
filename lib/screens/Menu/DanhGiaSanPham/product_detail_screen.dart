@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/SanPham.dart';
 import '../../../models/DanhGia.dart';
 import '../../../services/danhgia_service.dart';
@@ -18,6 +19,7 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final DanhGiaService _danhGiaService = DanhGiaService();
   File? _selectedImage;
+  int? _userId;
 
   List<DanhGia> _danhGias = [];
   bool _isLoading = true;
@@ -29,7 +31,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserId();
     _fetchDanhGias();
+  }
+
+  Future<void> _loadUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userId = prefs.getInt('user_id');
+    });
   }
 
   Future<void> _pickImage() async {
@@ -45,11 +55,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<void> _fetchDanhGias() async {
     try {
-      final danhGias = await _danhGiaService.fetchDanhGias();
+      final danhGias = await _danhGiaService.fetchDanhGiaProductId(widget.sanPham.maSanPham);
       setState(() {
-        _danhGias = danhGias
-            .where((dg) => dg.maSanPham == widget.sanPham.maSanPham)
-            .toList();
+        _danhGias = danhGias;
         _isLoading = false;
       });
     } catch (e) {
@@ -71,7 +79,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     try {
       final newDanhGia = DanhGia(
         maDanhGia: 0,
-        maNguoiDung: 1, // Thay bằng ID người dùng thực
+        maNguoiDung: _userId ?? 0,
+
         maSanPham: widget.sanPham.maSanPham,
         soSao: _soSao,
         noiDung: _noiDungController.text,

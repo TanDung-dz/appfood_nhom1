@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/ChiTietDonHang.dart';
 import '../../../models/DonHang.dart';
 import '../../../models/GioHang.dart';
@@ -13,6 +14,7 @@ import '../../orders/orders_screen.dart';
 import '../widgets/CartProvider.dart';
 
 class GioHangScreen extends StatefulWidget {
+
   const GioHangScreen({Key? key}) : super(key: key);
 
   @override
@@ -32,12 +34,24 @@ class _GioHangScreenState extends State<GioHangScreen> {
     _loadCartItems();
   }
 
+  Future<int> _getCurrentUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id') ?? 0;
+  }
+
   Future<void> _loadCartItems() async {
+    print('Start loading cart items in GioHangScreen');
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     try {
       await cartProvider.loadCartItems();
+      print('Cart items loaded: ${cartProvider.cartItems.length}');
+    } catch (e) {
+      print('Error loading cart items in screen: $e');
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        print('Loading state updated: $_isLoading');
+      });
     }
   }
 
@@ -106,149 +120,199 @@ class _GioHangScreenState extends State<GioHangScreen> {
 
                   ElevatedButton(
                     onPressed: () async {
-                      final paymentMethods = await PhuongThucThanhToanService().fetchAllPaymentMethods();
+                      try {
+                        print('Payment button pressed'); // Debug log
 
-                      showDialog(
-                        context: context,
-                        builder: (dialogContext) => StatefulBuilder( // Thêm dialogContext
-                          builder: (context, dialogSetState) => AlertDialog( // Đổi setState thành dialogSetState
-                            title: Text('Chọn phương thức thanh toán'),
-                            content: Container(
-                              width: double.maxFinite,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  FutureBuilder<List<PhuongThucThanhToan>>(
-                                    future: PhuongThucThanhToanService().fetchAllPaymentMethods(),
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState == ConnectionState.waiting) {
-                                        return CircularProgressIndicator();
-                                      }
-                                      if (snapshot.hasError) {
-                                        return Text('Lỗi: ${snapshot.error}');
-                                      }
-                                      return Column(
-                                        children: snapshot.data!.map((method) =>
-                                            RadioListTile<int>(
-                                              title: Text(method.ten),
-                                              value: method.maPhuongThuc,
-                                              groupValue: selectedPaymentId,
-                                              onChanged: (value) => dialogSetState(() => selectedPaymentId = value!),
-                                            )
-                                        ).toList(),
-                                      );
-                                    },
-                                  ),
-                                  SizedBox(height: 16),
-                              TextField(
-                                controller: promoController,
-                                decoration: InputDecoration(
-                                  labelText: 'Mã khuyến mãi',
-                                  border: OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(Icons.check),
-                                    onPressed: () async {
-                                      bool success = await cartProvider.applyKhuyenMai(promoController.text);
-                                      if (success) {
-                                        dialogSetState(() {}); // Cập nhật dialog
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Đã áp dụng mã giảm giá')),
-                                        );
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Mã khuyến mãi không hợp lệ')),
-                                        );
-                                      }
-                                    },
+                        // Fetch payment methods
+                        final paymentMethods = await PhuongThucThanhToanService().fetchAllPaymentMethods();
+                        print('Fetched payment methods: ${paymentMethods.length}'); // Debug log
+
+                        if (paymentMethods.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Không có phương thức thanh toán nào')),
+                          );
+                          return;
+                        }
+
+                        if (!context.mounted) return;
+
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false, // Prevent closing by tapping outside
+                          builder: (dialogContext) => StatefulBuilder(
+                            builder: (context, dialogSetState) {
+                              print('Building payment dialog'); // Debug log
+                              return AlertDialog(
+                                title: const Text('Chọn phương thức thanh toán'),
+                                content: Container(
+                                  width: double.maxFinite,
+                                  child: SingleChildScrollView( // Prevent overflow
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        FutureBuilder<List<PhuongThucThanhToan>>(
+                                          future: PhuongThucThanhToanService().fetchAllPaymentMethods(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState == ConnectionState.waiting) {
+                                              return const Center(child: CircularProgressIndicator());
+                                            }
+
+                                            if (snapshot.hasError) {
+                                              print('Error loading payment methods: ${snapshot.error}'); // Debug log
+                                              return Text('Lỗi: ${snapshot.error}');
+                                            }
+
+                                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                              return const Text('Không có phương thức thanh toán');
+                                            }
+
+                                            return Column(
+                                              children: snapshot.data!.map((method) =>
+                                                  RadioListTile<int>(
+                                                    title: Text(method.ten),
+                                                    value: method.maPhuongThuc,
+                                                    groupValue: selectedPaymentId,
+                                                    onChanged: (value) {
+                                                      dialogSetState(() {
+                                                        selectedPaymentId = value!;
+                                                        print('Selected payment method: $value'); // Debug log
+                                                      });
+                                                    },
+                                                  )
+                                              ).toList(),
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextField(
+                                          controller: promoController,
+                                          decoration: InputDecoration(
+                                            labelText: 'Mã khuyến mãi',
+                                            border: const OutlineInputBorder(),
+                                            suffixIcon: IconButton(
+                                              icon: const Icon(Icons.check),
+                                              onPressed: () async {
+                                                try {
+                                                  print('Applying promo code: ${promoController.text}'); // Debug log
+                                                  bool success = await cartProvider.applyKhuyenMai(promoController.text);
+
+                                                  if (!context.mounted) return;
+
+                                                  if (success) {
+                                                    dialogSetState(() {}); // Update dialog
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text('Đã áp dụng mã giảm giá')),
+                                                    );
+                                                  } else {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text('Mã khuyến mãi không hợp lệ')),
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  print('Error applying promo code: $e'); // Debug log
+                                                  if (!context.mounted) return;
+
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(content: Text('Lỗi khi áp dụng mã: $e')),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Tổng tiền sau giảm giá: ${cartProvider.discountedPrice.toStringAsFixed(0)} VND',
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Hủy'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      try {
+                                        print('Processing payment...'); // Debug log
 
-                                  SizedBox(height: 8),
-                                  Text('Tổng tiền sau giảm giá: ${cartProvider.discountedPrice.toStringAsFixed(0)} VND'),
+                                        if (selectedPaymentId == 0) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Vui lòng chọn phương thức thanh toán')),
+                                          );
+                                          return;
+                                        }
+
+                                        final userId = await _getCurrentUserId();
+                                        print('User ID: $userId'); // Debug log
+
+                                        // Create order
+                                        final order = DonHang(
+                                          maDonHang: 0,
+                                          maNguoiDung: userId,
+                                          maPhuongThuc: selectedPaymentId,
+                                          maDiaChi: 1,
+                                          tongTien: cartProvider.discountedPrice,
+                                          trangThai: 1,
+                                          ngayTao: DateTime.now(),
+                                        );
+
+                                        print('Creating order...'); // Debug log
+                                        final createdOrder = await donHangService.createDonHang(order);
+                                        print('Order created: ${createdOrder.maDonHang}'); // Debug log
+
+                                        // Create order details
+                                        for (var item in cartProvider.cartItems) {
+                                          final chiTietDonHang = ChiTietDonHang(
+                                            maSanPham: item.maSanPham,
+                                            maDonHang: createdOrder.maDonHang,
+                                            soLuong: item.soLuong,
+                                            maKhuyenMaiApDung: cartProvider.appliedKhuyenMai?.maKhuyenMai,
+                                            tenSanPham: item.tenSanPham,
+                                          );
+                                          await chiTietDonHangService.createChiTietDonHang(chiTietDonHang);
+                                        }
+                                        print('Order details created'); // Debug log
+
+                                        await cartProvider.checkout();
+                                        print('Cart cleared'); // Debug log
+
+                                        if (!context.mounted) return;
+
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(builder: (context) =>  OrdersScreen()),
+                                        );
+
+                                      } catch (e) {
+                                        print('Error creating order: $e');
+                                        if (!context.mounted) return;
+
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Lỗi khi tạo đơn hàng: $e')),
+                                        );
+                                      }
+                                    },
+                                    child: const Text('Thanh toán'),
+                                  ),
                                 ],
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: Text('Hủy'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  try {
-                                    if (selectedPaymentId == 0) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Vui lòng chọn phương thức thanh toán')),
-                                      );
-                                      return;
-                                    }
-
-                                    final order = DonHang(
-                                      maDonHang: 0,
-                                      maNguoiDung: 1,
-                                      maPhuongThuc: selectedPaymentId,
-                                      maDiaChi: 1,
-                                      tongTien: cartProvider.discountedPrice, // Đã là giá sau khuyến mãi
-                                      trangThai: 1,
-                                      ngayTao: DateTime.now(),
-                                    );
-
-                                    print('Tổng tiền trước khuyến mãi: ${cartProvider.totalPrice}');
-                                    print('Mã khuyến mãi áp dụng: ${cartProvider.appliedKhuyenMai?.ten}');
-                                    print('Giá trị khuyến mãi: ${cartProvider.appliedKhuyenMai?.giaTri}');
-                                    print('Tổng tiền sau khuyến mãi: ${cartProvider.discountedPrice}');
-                                    print('Creating order with data: ${order.toJson()}');
-                                    final createdOrder = await donHangService.createDonHang(order);
-
-                                    // Tạo chi tiết đơn hàng
-                                    for (var item in cartProvider.cartItems) {
-                                      final chiTietDonHang = ChiTietDonHang(
-                                        maSanPham: item.maSanPham,
-                                        maDonHang: createdOrder.maDonHang,
-                                        soLuong: item.soLuong,
-                                        maKhuyenMaiApDung: cartProvider.appliedKhuyenMai?.maKhuyenMai,
-                                        tenSanPham: item.tenSanPham,
-                                        ghiChu: cartProvider.appliedKhuyenMai != null ?
-                                        "Đã áp dụng khuyến mãi: ${cartProvider.appliedKhuyenMai!.ten} - Giảm ${cartProvider.appliedKhuyenMai!.giaTri} VND" : null,
-                                      );
-                                      await chiTietDonHangService.createChiTietDonHang(chiTietDonHang);
-                                    }
-
-                                    await cartProvider.checkout(); // Xóa giỏ hàng sau khi tạo đơn hàng
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Đặt hàng thành công')),
-                                    );
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => OrdersScreen()),
-                                    );
-
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Đặt hàng thành công')),
-                                    );
-
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => OrdersScreen()),
-                                    );
-
-                                  } catch (e) {
-                                    print('Error creating order: $e');
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Lỗi khi tạo đơn hàng: $e')),
-                                    );
-                                  }
-                                },
-                                child: Text('Thanh toán'),
-                              ),
-                            ],
+                              );
+                            },
                           ),
-                        ),
-                      );
+                        );
+                      } catch (e) {
+                        print('Error showing payment dialog: $e');
+                        if (!context.mounted) return;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Lỗi: $e')),
+                        );
+                      }
                     },
-                    child: Text('Thanh toán'),
+                    child: const Text('Thanh toán'),
                   )
                 ],
               ),

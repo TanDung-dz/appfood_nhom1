@@ -1,6 +1,7 @@
 // lib/services/api_service.dart
 import 'dart:async';
 import 'dart:convert';
+import 'package:appfood_nhom1/services/nguoidung_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,7 +62,7 @@ class ApiService {
         headers: {
           'Accept': 'application/json',
         },
-      ).timeout(const Duration(seconds: 15));
+      );
 
       print('Response status code: ${response.statusCode}'); // Debug log
       print('Response body: ${response.body}'); // Debug log
@@ -74,12 +75,14 @@ class ApiService {
         String role = responseData['role'];
         // Decode token để lấy các thông tin đăng nhập: tên đăng nhập, role...
         Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+        final nguoidung  = await NguoiDungService().getNguoiDungByUsername(username);
         // Lưu token vào SharedPreferences
         SharedPreferences prefs = await
         SharedPreferences.getInstance();
         prefs.setString('jwt_token', token); // Lưu token
         prefs.setString('username', username);//Lưu ten đăng nhập
         prefs.setString('role', role);// lưu Quyền
+        prefs.setInt('user_id', nguoidung!.maNguoiDung);
         return {
           "success": true,
           "token": token,
@@ -151,7 +154,7 @@ class ApiService {
         throw Exception(json.decode(response.body)['message'] ?? 'Đăng ký thất bại');
       }
     } catch (e) {
-      throw Exception('Email hay số điện thoại đã được sử dụng. ');
+      throw Exception('Lỗi đăng kí : $e ');
     }
   }
 }

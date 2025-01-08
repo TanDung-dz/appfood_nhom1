@@ -25,13 +25,49 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   List<ChiTietDonHang> _orderDetails = [];
   late int currentStatus;
   String? userRole;
-
+  bool _isInitialized = false;
   @override
   void initState() {
     super.initState();
-    _loadUserRole();
+    _initializeData();
+    _loadUserRole().then((_) {
+      // Đảm bảo userRole đã được load xong
+      setState(() {});
+    });
     currentStatus = widget.order.trangThai ?? 0;
     _loadOrderDetails();
+  }
+
+  Future<void> _initializeData() async {
+    try {
+      // Load user role trước
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userRole = prefs.getString('role');
+
+      // Set trạng thái hiện tại của đơn hàng
+      currentStatus = widget.order.trangThai ?? 0;
+
+      // Load chi tiết đơn hàng
+      final details = await _chiTietDonHangService.fetchChiTietDonHangByOrderId(
+        widget.order.maDonHang,
+      );
+
+      if (mounted) {
+        setState(() {
+          _orderDetails = details;
+          _isLoading = false;
+          _isInitialized = true;  // Đánh dấu đã khởi tạo xong
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+          _isInitialized = true;
+        });
+      }
+    }
   }
 
   Future<void> _loadUserRole() async {
@@ -39,6 +75,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     setState(() {
       userRole = prefs.getString('role');
     });
+    print('Current User Role: $userRole'); // Thêm log để kiểm tra
   }
 
   Future<void> _loadOrderDetails() async {
@@ -63,7 +100,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       });
     }
   }
-//xuly trnag thai dang giao
+  //xuly trnag thai dang giao
   Future<void> _updateOrderStatus() async {
     try {
       setState(() => _isUpdating = true);
@@ -100,11 +137,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      // if (mounted) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(content: Text('Lỗi: ${e.toString()}')),
-      //   );
-      // }
     } finally {
       if (mounted) {
         setState(() => _isUpdating = false);
@@ -112,51 +144,67 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  // chuyen sang trang thai hoan thanh
+  // kiem tra user roi se thuc hien nut chuyen trang thai qua trang thai da nhan hang
   Future<void> _updateToCompleted() async {
+    if (userRole != 'User') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chỉ người dùng mới có quyền xác nhận đã nhận hàng.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      return;
+    }
+
     try {
       setState(() => _isUpdating = true);
 
       DonHang updatedOrder = DonHang(
-        maDonHang: widget.order.maDonHang,
-        maNguoiDung: widget.order.maNguoiDung,
-        maPhuongThuc: widget.order.maPhuongThuc,
-        maDiaChi: widget.order.maDiaChi,
-        tongTien: widget.order.tongTien,
-        trangThai: 3, // Cập nhật thành Hoàn thành
-        ngayTao: widget.order.ngayTao,
-        ngayCapNhat: DateTime.now(),
-        an: widget.order.an,
-        tenNguoiDung: widget.order.tenNguoiDung,
-        tenPhuongThuc: widget.order.tenPhuongThuc,
+          maDonHang: widget.order.maDonHang,
+          maNguoiDung: widget.order.maNguoiDung,
+          maPhuongThuc: widget.order.maPhuongThuc,
+          maDiaChi: widget.order.maDiaChi,
+          tongTien: widget.order.tongTien,
+          trangThai: 3,
+          ngayTao: widget.order.ngayTao,
+          ngayCapNhat: DateTime.now(),
+          an: widget.order.an,
+          tenNguoiDung: widget.order.tenNguoiDung,
+          tenPhuongThuc: widget.order.tenPhuongThuc
       );
 
-      await _donHangService.updateDonHang(
-          widget.order.maDonHang,
-          updatedOrder
-      );
+      await _donHangService.updateDonHang(widget.order.maDonHang, updatedOrder);
 
       setState(() {
         currentStatus = 3;
         widget.order.trangThai = 3;
+        _isUpdating = false;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đơn hàng đã hoàn thành')),
+          const SnackBar(
+            content: Text('Đã xác nhận nhận hàng thành công'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
         );
         OrderEvents.orderStatusChanged.add(true);
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
-    // } catch (e) {
-    //   if (mounted) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(content: Text('Lỗi: ${e.toString()}')),
-    //     );
-    //   }
-    } finally {
+    } catch (e) {
+
       if (mounted) {
         setState(() => _isUpdating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã xác nhận nhận hàng thành công'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        OrderEvents.orderStatusChanged.add(true);
+        Navigator.pop(context, true);
       }
     }
   }
@@ -272,28 +320,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildUpdateStatusButton() {
-    if (currentStatus != 1 && currentStatus != 2) return const SizedBox();
+    print('Building button with userRole: $userRole and currentStatus: $currentStatus'); // Thêm log
 
-    if (currentStatus == 1 && userRole == 'Admin') {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: ElevatedButton(
-          onPressed: _isUpdating ? null : _updateOrderStatus,
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size.fromHeight(50),
-            backgroundColor: Colors.orange,
-          ),
-          child: _isUpdating
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Text(
-            'Chuyển sang trạng thái đang giao',
-            style: TextStyle(fontSize: 16),
-          ),
-        ),
-      );
-    }
-
-    if (currentStatus == 2) {
+    // Nút "Đã nhận hàng" (User thực hiện)
+    if (currentStatus == 2 && userRole == 'User') {
+      print('Should show User button'); // Thêm log để kiểm tra
       return Padding(
         padding: const EdgeInsets.all(16),
         child: ElevatedButton(
@@ -312,8 +343,31 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       );
     }
 
+    // Nút chuyển sang trạng thái "Đang giao" (Admin thực hiện)
+    if (currentStatus == 1 && userRole == 'Admin') {
+      print('Should show Admin button'); // Thêm log để kiểm tra
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: ElevatedButton(
+          onPressed: _isUpdating ? null : _updateOrderStatus,
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+            backgroundColor: Colors.orange,
+          ),
+          child: _isUpdating
+              ? const CircularProgressIndicator(color: Colors.white)
+              : const Text(
+            'Chuyển sang trạng thái đang giao',
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    // Nếu không thỏa điều kiện nào
     return const SizedBox();
   }
+
 
 
   void _showNoteDialog(String note) {
@@ -334,6 +388,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Chi tiết đơn hàng'),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chi tiết đơn hàng'),
@@ -341,24 +406,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       body: Column(
         children: [
           Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadOrderDetails,
-              child: ListView(
-                children: [
-                  _buildOrderInfo(),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Sản phẩm đã đặt',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+            child: ListView(
+              children: [
+                _buildOrderInfo(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Sản phẩm đã đặt',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  _buildOrderItems(),
-                ],
-              ),
+                ),
+                _buildOrderItems(),
+              ],
             ),
           ),
           _buildUpdateStatusButton(),

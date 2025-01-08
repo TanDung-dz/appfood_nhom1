@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/GioHang.dart';
 import '../../../models/SanPham.dart';
 import '../../../models/KhuyenMai.dart';
@@ -38,29 +39,57 @@ class CartProvider with ChangeNotifier {
   int get cartItemCount => _cartItems.length;
 
   Future<void> addToCart(SanPham product) async {
-    GioHang gioHang = GioHang(
-        maGioHang: 0,
-        maSanPham: product.maSanPham,
-        maNguoiDung: 1,
-        soLuong: 1,
-        tenSanPham: product.tenSanPham
-    );
+    try {
+      final userId = await _getCurrentUserId();
+      print('Current user_id: $userId'); // Log user id
 
-    await _gioHangService.createGioHang(gioHang);
-    await loadCartItems();
+      if (userId == 0) {
+        throw Exception('User not logged in');
+      }
+
+      GioHang gioHang = GioHang(
+          maGioHang: 0,
+          maSanPham: product.maSanPham,
+          maNguoiDung: userId,
+          soLuong: 1,
+          tenSanPham: product.tenSanPham
+      );
+
+      print('Adding to cart: ${gioHang.toJson()}'); // Log giỏ hàng
+
+      final result = await _gioHangService.createGioHang(gioHang);
+      print('Add to cart result: ${result.toJson()}'); // Log kết quả
+
+      await loadCartItems();
+    } catch (e) {
+      print('Error adding to cart: $e');
+      throw e;
+    }
+  }
+
+// Thêm phương thức lấy ID người dùng
+  Future<int> _getCurrentUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id') ?? 0;
   }
 
   Future<void> loadCartItems() async {
     try {
-      final gioHangList = await _gioHangService.getAll();
+      final userId = await _getCurrentUserId();
+      print('Loading cart items for user: $userId');
+
+      final gioHangList = await _gioHangService.getByUserId(userId);
+      print('Got cart items from API: ${gioHangList.length}');
+
       final sanPhamList = await _sanPhamService.getAllSanPham();
+      print('Got all products: ${sanPhamList.length}');
 
       _cartItems = gioHangList.map((gioHang) {
         final sanPham = sanPhamList.firstWhere(
               (sp) => sp.maSanPham == gioHang.maSanPham,
           orElse: () => gioHang.toSanPham(),
         );
-
+        print('Mapping cart item: ${sanPham.tenSanPham}');
         return SanPham(
           maSanPham: sanPham.maSanPham,
           maLoai: sanPham.maLoai,
@@ -72,6 +101,8 @@ class CartProvider with ChangeNotifier {
         );
       }).toList();
 
+
+      print('Final cart items count: ${_cartItems.length}');
       notifyListeners();
     } catch (e) {
       print('Error loading cart items: $e');
@@ -80,19 +111,26 @@ class CartProvider with ChangeNotifier {
   }
 
   Future<void> updateQuantity(int id, int quantity) async {
-    final item = _cartItems.firstWhere((item) => item.maSanPham == id);
-    await _gioHangService.updateGioHang(id, GioHang(
-      maGioHang: id,
-      maSanPham: item.maSanPham,
-      soLuong: quantity,
-      maNguoiDung: 1,
-    ));
-    await loadCartItems();
+    try {
+      final userId = await _getCurrentUserId();
+      final item = _cartItems.firstWhere((item) => item.maSanPham == id);
+      await _gioHangService.updateGioHang(id, GioHang(
+        maGioHang: id,
+        maSanPham: item.maSanPham,
+        soLuong: quantity,
+        maNguoiDung: userId, // Sử dụng ID người dùng hiện tại
+      ));
+      await loadCartItems();
+    } catch (e) {
+      print('Error updating quantity: $e');
+      throw e;
+    }
   }
 
   Future<void> removeFromCart(SanPham product) async {
     try {
-      final gioHangList = await _gioHangService.getAll();
+      final userId = await _getCurrentUserId();
+      final gioHangList = await _gioHangService.getByUserId(userId); // Lấy giỏ hàng theo user id
       final gioHang = gioHangList.firstWhere(
               (item) => item.maSanPham == product.maSanPham,
           orElse: () => throw Exception('Item not found in cart')
@@ -148,8 +186,9 @@ class CartProvider with ChangeNotifier {
 
   Future<void> checkout() async {
     try {
-      // Xóa giỏ hàng trên server
-      final gioHangList = await _gioHangService.getAll();
+      final userId = await _getCurrentUserId();
+      // Xóa giỏ hàng trên server theo user id
+      final gioHangList = await _gioHangService.getByUserId(userId);
       for (var gioHang in gioHangList) {
         await _gioHangService.deleteGioHang(gioHang.maGioHang);
       }
@@ -158,7 +197,7 @@ class CartProvider with ChangeNotifier {
       _cartItems.clear();
       _appliedKhuyenMai = null;
 
-      notifyListeners(); // Cập nhật giao diện
+      notifyListeners();
     } catch (e) {
       print('Error during checkout: $e');
       throw e;

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:appfood_nhom1/screens/orders/events.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/DonHang.dart';
 import '../../services/donhang_service.dart';
@@ -35,12 +36,35 @@ class _OrdersScreenState extends State<OrdersScreen> {
     super.dispose();
   }
 
+  Future<int> _getCurrentUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id') ?? 0;
+  }
+
   Future<void> _loadOrders({String? statusFilter}) async {
     try {
       setState(() => _isLoading = true);
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Lấy userId hiện tại
+      final userId = await _getCurrentUserId();
+      final role = prefs.getString('role'); // "User" hoặc "Admin"
 
-      // Gọi dịch vụ để lấy danh sách đơn hàng
-      final orders = await _donHangService.getAllDonHangs();
+      // // Gọi dịch vụ để lấy danh sách đơn hàng theo userId
+      // final orders = await _donHangService.getDonHangsByUserId(userId);
+
+      List<DonHang> orders;
+
+      if (role == 'User') {
+        // Nếu là User, chỉ lấy đơn hàng của người dùng
+        final userId = await _getCurrentUserId();
+        orders = await _donHangService.getDonHangsByUserId(userId);
+      } else if (role == 'Admin') {
+        // Nếu là Admin, lấy tất cả đơn hàng
+        orders = await _donHangService.getAllDonHangs();
+      } else {
+        // Nếu không xác định vai trò, không tải đơn hàng
+        orders = [];
+      }
 
       setState(() {
         if (statusFilter != null) {
@@ -58,7 +82,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             }
           }).toList();
         } else {
-          // Nếu không có `statusFilter`, tải toàn bộ đơn hàng
+          // Nếu không có `statusFilter`, giữ toàn bộ đơn hàng của user đó
           _orders = orders;
         }
         _isLoading = false;
@@ -194,18 +218,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
           title: const Text('Đơn hàng'),
           bottom: TabBar(
             onTap: (index) {
-              // Tải lại danh sách theo tab được chọn
-              switch (index) {
-                case 0:
-                  _loadOrders(statusFilter: 'processing');
-                  break;
-                case 1:
-                  _loadOrders(statusFilter: 'delivering');
-                  break;
-                case 2:
-                  _loadOrders(statusFilter: 'completed');
-                  break;
-              }
+              // Tải lại danh sách và lọc theo trạng thái tương ứng
+              _loadOrders().then((_) {
+                setState(() {
+                  switch (index) {
+                    case 0:
+                      _orders = _orders.where((order) => order.trangThai == 1).toList();
+                      break;
+                    case 1:
+                      _orders = _orders.where((order) => order.trangThai == 2).toList();
+                      break;
+                    case 2:
+                      _orders = _orders.where((order) => order.trangThai == 3).toList();
+                      break;
+                  }
+                });
+              });
             },
             tabs: const [
               Tab(text: 'Đang xử lý'),
