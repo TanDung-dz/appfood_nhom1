@@ -6,10 +6,8 @@ class ApiConfig {
     if (kIsWeb) {
       return 'http://localhost:5240';  // URL cho web
     } else {
-      // return 'http://10.0.2.2:5240';
-       return 'https://fastorangebag46.conveyor.cloud';
-
-
+      return 'http://10.0.2.2:5240';
+       // return 'https://tallyellowbox21.conveyor.cloud';
     }
 
   }

@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'package:appfood_nhom1/screens/home/home_screen.dart';
 import 'package:appfood_nhom1/screens/more/widgets/khuyenmai_screen.dart';
 import 'package:appfood_nhom1/screens/more/widgets/nhacungcap_screen.dart';
 import 'package:appfood_nhom1/screens/more/widgets/thongbao_screen.dart';
+import 'package:appfood_nhom1/screens/more/widgets/thongtintaikhoan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/NguoiDung.dart';
@@ -15,6 +17,11 @@ class MoreScreen extends StatefulWidget {
   @override
   State<MoreScreen> createState() => _MoreScreenState();
 }
+Future<int?> _getUserIdFromSharedPreferences() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  return prefs.getInt('user_id'); // Lấy user_id từ SharedPreferences
+}
+
 
 class _MoreScreenState extends State<MoreScreen> {
   final ApiService _apiService = ApiService();
@@ -104,13 +111,21 @@ class _MoreScreenState extends State<MoreScreen> {
               leading: const Icon(Icons.person),
               title: const Text('Thông tin tài khoản'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/profile',
-                  arguments: currentUser,
-                ).then((_) => _loadUserData());
+              onTap: () async {
+                int? userId = await _getUserIdFromSharedPreferences();
+                if (userId != null) {
+                  Navigator.pushNamed(
+                    context,
+                    '/profile',
+                    arguments: userId,
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Không tìm thấy thông tin người dùng!')),
+                  );
+                }
               },
+
             ),
             const Divider(),
             ListTile(

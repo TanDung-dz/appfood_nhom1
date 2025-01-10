@@ -57,24 +57,30 @@ class NhaCungCapService {
   // Tạo mới một nhà cung cấp
   Future<bool> createSupplier(NhaCungCap supplier) async {
     final token = await _getToken();
+    if (token == null) throw Exception('Token is missing. Please log in again.');
+
     try {
-      var request = http.MultipartRequest(
-        'POST',
+      final response = await http.post(
         Uri.parse('$baseUrl/api/NhaCungCap/CreateSupplier'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'tenNhaCungCap': supplier.tenNhaCungCap,
+          'diaChi': supplier.diaChi,
+          'soDienThoai': supplier.soDienThoai,
+          'email': supplier.email,
+          'an': supplier.an ?? false,
+        }),
       );
 
-      request.headers['Authorization'] = 'Bearer $token'; // Thêm header
-      request.fields['tenNhaCungCap'] = supplier.tenNhaCungCap ?? '';
-      request.fields['diaChi'] = supplier.diaChi ?? '';
-      request.fields['soDienThoai'] = supplier.soDienThoai ?? '';
-      request.fields['email'] = supplier.email ?? '';
-
-      var response = await request.send();
       return response.statusCode == 201;
     } catch (e) {
       throw Exception('Error: $e');
     }
   }
+
 
   // Cập nhật thông tin nhà cung cấp
   Future<bool> updateSupplier(int id, NhaCungCap supplier) async {

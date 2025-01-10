@@ -2,6 +2,7 @@
 import 'package:appfood_nhom1/screens/Menu/widgets/CartProvider.dart';
 import 'package:appfood_nhom1/screens/login/login_screen.dart';
 import 'package:appfood_nhom1/screens/login/register_screen.dart';
+import 'package:appfood_nhom1/screens/more/widgets/thongtintaikhoan_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const MainScreen(), // Thay HomeScreen bằng MainScreen
+        '/profile': (context) => const ProfileScreen(), // Thêm route này
       },
     );
   }

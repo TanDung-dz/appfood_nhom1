@@ -114,18 +114,26 @@ class CartProvider with ChangeNotifier {
     try {
       final userId = await _getCurrentUserId();
       final item = _cartItems.firstWhere((item) => item.maSanPham == id);
-      await _gioHangService.updateGioHang(id, GioHang(
-        maGioHang: id,
-        maSanPham: item.maSanPham,
-        soLuong: quantity,
-        maNguoiDung: userId, // Sử dụng ID người dùng hiện tại
-      ));
+
+      // Gọi hàm updateGioHang trong GioHangService
+      await _gioHangService.updateGioHang(
+        id,
+        GioHang(
+          maGioHang: item.maSanPham, // hoặc id tùy theo backend của bạn
+          maSanPham: item.maSanPham,
+          soLuong: quantity,
+          maNguoiDung: userId,
+        ),
+      );
+
+      // Load lại giỏ hàng sau khi cập nhật
       await loadCartItems();
     } catch (e) {
       print('Error updating quantity: $e');
       throw e;
     }
   }
+
 
   Future<void> removeFromCart(SanPham product) async {
     try {
